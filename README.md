@@ -46,7 +46,7 @@ The response will look something like the below JSON object. This response conta
 After creating the service principal, we need to give it an additional role so our infrastructure template can assign roles within the scope of the resource group.
 
 ```azurecli
-SP_ID=$(az ad sp list --display-name startupstack-gh --query [0].objectId -o tsv)
+SP_ID=$(az ad sp list --display-name startupstack-gh --query [0].id -o tsv)
 az role assignment create --assignee-object-id $SP_ID \
     --role "User Access Administrator" \
     --scope $RESOURCE_GROUP_ID \
@@ -67,7 +67,7 @@ az deployment group create --resource-group startupstack-demo \
 ### Configure the Secrets
 
 1. Navigate to your repository on GitHub
-2. Select **Settings > Secrets > New repository secret**
+2. Select **Settings > Secrets and Variables > Actions > New repository secret**
 3. Paste the entire JSON output that you saved earlier. Give the secret the name `AZURE_CREDENTIALS`.
 4. Create another secret named `AZURE_RG`. Add the name of the resource group you created (in the above example it is `startupstack-demo`) to the secret's value field.
 5. Create another secret named `DB_PASSWORD`. Add the database password you used when initially deploying the infrastructure to the secret's value field.

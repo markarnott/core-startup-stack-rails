@@ -27,29 +27,30 @@ jobs:
       uses: azure/login@v1
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
-    - uses: actions/checkout@v2
+    - name: 'Checkout'
+      uses: actions/checkout@v3
     - name: 'Set Name'
       id: setName
       run: |
         NAME=$(jq -r '.["parameters"]["name"]["value"]' infrastructure/params-production.json)
-        echo "::set-output name=name::${NAME//'%'/'%25'}"
+        echo "name=${NAME//'%'/'%25'}" >> $GITHUB_OUTPUT
     - name: 'Set Container Registry Name'
       id: setCRName
       run: |
         CR_NAME=$(az acr list -g ${{ secrets.AZURE_RG }} --query [0].name -o tsv)
-        echo "::set-output name=crName::${CR_NAME//'-'/''}"
+        echo "crName=${CR_NAME//'-'/''}" >> $GITHUB_OUTPUT
 
     - name: 'Set Deploy Tag Name'
       id: setTag
       run: |
         DEPLOY_TAG=$(git describe --tags --always HEAD)
-        echo "::set-output name=deployTag::${DEPLOY_TAG}"
+        echo "deployTag=${DEPLOY_TAG}" >> $GITHUB_OUTPUT
 
     - name: 'Set Service Principal ID'
       id: setSpId
       run: |
         SP_ID=$(az ad sp show --id ${{ fromJSON(secrets.AZURE_CREDENTIALS).clientId }} --query objectId -o tsv)
-        echo "::set-output name=spId::${SP_ID}"
+        echo "spId=${SP_ID}"  >> $GITHUB_OUTPUT
 
     - name: 'Mask Service Principal Key'
       run: |
@@ -63,7 +64,7 @@ jobs:
 
     steps:
     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       
     - name: 'Mask Service Principal Key'
       run: |
@@ -77,13 +78,13 @@ jobs:
         password: ${{fromJSON(secrets.AZURE_CREDENTIALS).clientSecret}}
 
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v1.5.1
+      uses: docker/setup-buildx-action@v2
       with:
         use: true
 
     - name: Build and Push App
       id: docker_build
-      uses: docker/build-push-action@v2.6.1
+      uses: docker/build-push-action@v4
       with:
         push: true
         target: app
@@ -94,7 +95,7 @@ jobs:
     
     - name: Export assets
       id: export_assets
-      uses: docker/build-push-action@v2.6.1
+      uses: docker/build-push-action@v4
       with:
         push: false
         target: static
@@ -127,7 +128,7 @@ jobs:
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: 'Deploy Infrastructure'
         uses: azure/arm-deploy@v1
