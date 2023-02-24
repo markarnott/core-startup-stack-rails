@@ -1,0 +1,92 @@
+name: Test Docker Build Workflow
+
+# == Required Variables ==
+# DOCKER_REGISTRY
+# DOCKER_REPOSITORY
+# RESOURCE_GROUP_NAME
+# APP_NAME
+# GIT_USERNAME
+# GIT_EMAIL
+
+# == Required Secrets ==
+# GITHUB_TOKEN
+# DOCKER_REGISTRY_USERNAME
+# DOCKER_REGISTRY_PASSWORD
+
+
+# When this action will be executed
+on:
+  workflow_dispatch:
+  
+  # # Automatically trigger it when detected changes in repo
+  push:
+    branches: [main]
+    paths: 
+       - 'public/version.txt'
+
+env:
+  DOCKER_REGISTRY: ${{ vars.DOCKER_REGISTRY }}
+  DOCKER_REPOSITORY: ${{ vars.DOCKER_REPOSITORY }}
+  RESOURCE_GROUP_NAME: ${{ vars.RESOURCE_GROUP_NAME }}
+  APP_NAME: ${{ vars.APP_NAME }}
+  GIT_USERNAME: ${{ vars.GIT_USERNAME }}
+  GIT_EMAIL: ${{ vars.GIT_EMAIL }}
+
+jobs:
+  build-demo-image:
+    runs-on: ubuntu-latest
+    environment: lab-env
+
+    steps:
+      - name: Checkout to the branch
+        uses: actions/checkout@v3
+
+      - name: 'Reading Semantic Version'
+        id: Semver
+        run: |
+          VersionTag=`cat public/version.txt`
+          echo "VersionTag=${VersionTag}" >> $GITHUB_OUTPUT
+      
+      - name: 'Tagging Latest Commit to Semantic Version'
+        id: Tag
+        run: |
+          git config --global user.email “${{ env.GIT_EMAIL }}”
+          git config --global user.name “${{ env.GIT_USERNAME }}”
+          git tag -f ${{ steps.Semver.outputs.VersionTag }} -m "Updated to ${{ steps.Semver.outputs.VersionTag }}"
+          git push -f https://${{ env.GIT_USERNAME }}:${{ secrets.GITHUB_TOKEN }}@github.com/markarnott/core-startup-stack-rails.git ${{ steps.Semver.outputs.VersionTag }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.DOCKER_REGISTRY }}
+          username: ${{ secrets.DOCKER_REGISTRY_USERNAME }}
+          password: ${{ secrets.DOCKER_REGISTRY_PASSWORD }}
+
+      - name: Build and push container image to registry
+        uses: docker/build-push-action@v4
+        with:
+          push: true
+          tags: ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_REPOSITORY }}:${{ steps.Semver.outputs.VersionTag }}
+          file: ./Dockerfile
+          context: ./
+          # build-args: |
+          #   RAILS_MASTER_KEY=${{ secrets.RAILS_MASTER_KEY }}
+          #   SECRET_KEY_BASE=${{ secrets.SECRET_KEY_BASE }}
+        
+      
+      
+      # - name: 'Login via Azure CLI'
+      #   uses: azure/login@v1
+      #   with:
+      #     creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+
+      #- name: 'Deploy App' 
+      #  uses: azure/webapps-deploy@v2
+      #  with:
+      #    resource-group-name: ${{ env.RESOURCE_GROUP_NAME }}
+      #    app-name: ${{ env.APP_NAME }}
+      #    images: ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_REPOSITORY }}:${{ steps.Semver.outputs.VersionTag }}
