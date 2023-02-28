@@ -9,7 +9,7 @@ name: Test Docker Build Workflow
 # GIT_EMAIL
 
 # == Required Secrets ==
-# GITHUB_TOKEN
+# MY_ACTION_TOKEN
 # DOCKER_REGISTRY_USERNAME
 # DOCKER_REGISTRY_PASSWORD
 
@@ -53,7 +53,7 @@ jobs:
           git config --global user.email “${{ env.GIT_EMAIL }}”
           git config --global user.name “${{ env.GIT_USERNAME }}”
           git tag -f ${{ steps.Semver.outputs.VersionTag }} -m "Updated to ${{ steps.Semver.outputs.VersionTag }}"
-          git push -f https://${{ env.GIT_USERNAME }}:${{ secrets.GITHUB_TOKEN }}@github.com/markarnott/core-startup-stack-rails.git ${{ steps.Semver.outputs.VersionTag }}
+          git push -f https://${{ env.GIT_USERNAME }}:${{ secrets.MY_ACTION_TOKEN }}@github.com/markarnott/core-startup-stack-rails.git ${{ steps.Semver.outputs.VersionTag }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
